@@ -57,6 +57,11 @@ function stripToJson(text: string): string {
   return cleaned.trim();
 }
 
+// Thrown when the model's JSON is cut off because it hit the output token limit.
+// Retrying with the same input would truncate identically, so the caller
+// surfaces a clear "too long" message instead of retrying.
+class TruncationError extends Error {}
+
 function extractJson(text: string): ExplainResult {
   const parsed = JSON.parse(stripToJson(text)) as Partial<ExplainResult>;
   // Coerce risk_score to an integer clamped to the documented 1-10 range so the
@@ -111,12 +116,15 @@ export async function POST(request: Request) {
   // explicitly below.
   const client = new Anthropic({ apiKey, maxRetries: 0 });
 
-  // One model call + parse. Throws if the model returns empty text or unparseable
-  // JSON, so the caller can decide whether to retry.
-  async function callAndParse(attempt: number): Promise<ExplainResult> {
+  // One model call + parse. Throws on empty text, truncated output, or malformed
+  // JSON so the caller can decide whether to retry.
+  async function callAndParse(): Promise<ExplainResult> {
     const message = await client.messages.create({
       model: MODEL,
-      max_tokens: 1500,
+      // Generous output budget: a clause-heavy document can produce a large JSON
+      // object, and a too-low limit truncates it mid-array (stop_reason
+      // "max_tokens"), which then fails to parse.
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: [
         {
@@ -129,59 +137,45 @@ export async function POST(request: Request) {
     const textBlock = message.content.find((block) => block.type === "text");
     const rawText = textBlock && textBlock.type === "text" ? textBlock.text : "";
 
-    // DEBUG: log exactly what the model returned before we attempt to parse it.
-    console.log(
-      `[explain] attempt ${attempt}: stop_reason=${message.stop_reason} rawText.length=${rawText.length}`
-    );
-    console.log(`[explain] attempt ${attempt}: rawText >>>\n${rawText}\n<<<`);
-
     if (!rawText) {
       throw new Error("The model returned an empty response.");
     }
-
-    // extractJson throws (SyntaxError) on malformed JSON. Log the stripped text
-    // that JSON.parse actually sees and the exact parse error, then rethrow.
-    try {
-      return extractJson(rawText);
-    } catch (parseErr) {
-      const stripped = stripToJson(rawText);
-      console.error(
-        `[explain] attempt ${attempt}: JSON.parse FAILED: ${
-          parseErr instanceof Error ? parseErr.message : String(parseErr)
-        }`
-      );
-      console.error(`[explain] attempt ${attempt}: stripped text >>>\n${stripped}\n<<<`);
-      throw parseErr;
+    if (message.stop_reason === "max_tokens") {
+      // Output was cut off mid-JSON; parsing can't recover and a retry would
+      // truncate identically.
+      throw new TruncationError("The model's response was cut off.");
     }
+
+    // extractJson throws (SyntaxError) on malformed JSON.
+    return extractJson(rawText);
   }
 
   // Try up to twice: if the first response is empty or unparseable, make one more
-  // identical call before giving up. Genuine API errors (auth, rate limit,
-  // network) are surfaced immediately rather than retried here.
+  // identical call before giving up. API errors and truncation are not retried —
+  // retrying wouldn't change their outcome.
   const MAX_ATTEMPTS = 2;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const result = await callAndParse(attempt);
+      const result = await callAndParse();
       return NextResponse.json(result);
     } catch (err) {
       if (err instanceof Anthropic.APIError) {
-        console.error(
-          `[explain] attempt ${attempt}: Anthropic APIError status=${err.status}: ${err.message}`
-        );
         const messageText = err.message || "Unexpected error contacting the model.";
         return NextResponse.json({ error: messageText }, { status: err.status ?? 500 });
       }
+      if (err instanceof TruncationError) {
+        return NextResponse.json(
+          {
+            error:
+              "This document is too long to analyze in full. Please try a shorter section.",
+          },
+          { status: 422 }
+        );
+      }
       // Empty/malformed response — fall through to retry, or to the error below
       // once attempts are exhausted.
-      console.error(
-        `[explain] attempt ${attempt} FAILED (will ${
-          attempt < MAX_ATTEMPTS ? "retry" : "give up"
-        }): ${err instanceof Error ? err.message : String(err)}`
-      );
     }
   }
-
-  console.error("[explain] all attempts failed — returning generic error to user");
 
   return NextResponse.json(
     { error: "Something went wrong. Please try again." },
