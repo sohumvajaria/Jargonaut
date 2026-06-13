@@ -113,7 +113,7 @@ export async function POST(request: Request) {
 
   // One model call + parse. Throws if the model returns empty text or unparseable
   // JSON, so the caller can decide whether to retry.
-  async function callAndParse(): Promise<ExplainResult> {
+  async function callAndParse(attempt: number): Promise<ExplainResult> {
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: 1500,
@@ -129,12 +129,30 @@ export async function POST(request: Request) {
     const textBlock = message.content.find((block) => block.type === "text");
     const rawText = textBlock && textBlock.type === "text" ? textBlock.text : "";
 
+    // DEBUG: log exactly what the model returned before we attempt to parse it.
+    console.log(
+      `[explain] attempt ${attempt}: stop_reason=${message.stop_reason} rawText.length=${rawText.length}`
+    );
+    console.log(`[explain] attempt ${attempt}: rawText >>>\n${rawText}\n<<<`);
+
     if (!rawText) {
       throw new Error("The model returned an empty response.");
     }
 
-    // extractJson throws (SyntaxError) on malformed JSON.
-    return extractJson(rawText);
+    // extractJson throws (SyntaxError) on malformed JSON. Log the stripped text
+    // that JSON.parse actually sees and the exact parse error, then rethrow.
+    try {
+      return extractJson(rawText);
+    } catch (parseErr) {
+      const stripped = stripToJson(rawText);
+      console.error(
+        `[explain] attempt ${attempt}: JSON.parse FAILED: ${
+          parseErr instanceof Error ? parseErr.message : String(parseErr)
+        }`
+      );
+      console.error(`[explain] attempt ${attempt}: stripped text >>>\n${stripped}\n<<<`);
+      throw parseErr;
+    }
   }
 
   // Try up to twice: if the first response is empty or unparseable, make one more
@@ -143,17 +161,27 @@ export async function POST(request: Request) {
   const MAX_ATTEMPTS = 2;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const result = await callAndParse();
+      const result = await callAndParse(attempt);
       return NextResponse.json(result);
     } catch (err) {
       if (err instanceof Anthropic.APIError) {
+        console.error(
+          `[explain] attempt ${attempt}: Anthropic APIError status=${err.status}: ${err.message}`
+        );
         const messageText = err.message || "Unexpected error contacting the model.";
         return NextResponse.json({ error: messageText }, { status: err.status ?? 500 });
       }
       // Empty/malformed response — fall through to retry, or to the error below
       // once attempts are exhausted.
+      console.error(
+        `[explain] attempt ${attempt} FAILED (will ${
+          attempt < MAX_ATTEMPTS ? "retry" : "give up"
+        }): ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
+
+  console.error("[explain] all attempts failed — returning generic error to user");
 
   return NextResponse.json(
     { error: "Something went wrong. Please try again." },
