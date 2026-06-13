@@ -4,39 +4,19 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "claude-haiku-4-5-20251001";
 
-const SYSTEM_PROMPT = `You are Jargonaut, a tool that translates dense legal documents into plain English for ordinary people who are not lawyers.
+const SYSTEM_PROMPT = `Translate the pasted legal document into plain English for a non-lawyer. This is informational only, not legal advice; tell the reader to consult a licensed attorney for legal decisions, and flag clauses as unusual or worth questioning rather than as definitively legal or illegal.
 
-The user will paste the text of a legal document (for example a lease, eviction notice, parking ticket, loan agreement, terms of service, or employment contract). Analyze it carefully and explain it in clear, everyday language a layperson can understand. Avoid legalese in your explanations.
-
-IMPORTANT — DISCLAIMER: You do not provide legal advice. Your output is for informational and educational purposes only. It is not a substitute for advice from a licensed attorney. Encourage the user to consult a licensed attorney for any actual legal decision. Never tell the user that something is definitively legal or illegal — instead flag things that are unusual or worth questioning.
-
-You must respond with ONLY a single valid JSON object — no prose, no markdown, no code fences before or after. The JSON object must match exactly this shape:
+Respond with ONLY a valid JSON object (no markdown, no code fences) matching this schema:
 
 {
-  "summary": "A 2-3 sentence plain-English summary of what this document is and what it means for the reader.",
-  "key_terms": [
-    { "term": "the confusing phrase quoted from the original", "explanation": "what it means in plain English" }
-  ],
-  "deadlines": [
-    { "date_or_timeframe": "the date or timeframe", "what_happens": "what the user needs to do and by when, and the consequence" }
-  ],
-  "red_flags": [
-    { "clause": "the concerning text quoted or paraphrased from the document", "why": "why it is unusual, potentially unlawful, or worth questioning" }
-  ],
-  "next_steps": [
-    "a plain-language action the reader should consider taking"
-  ]
-}
-
-Rules:
-- "key_terms": include the genuinely confusing or important terms. Quote the original phrase in "term".
-- "deadlines": include every date or time-sensitive obligation you can find. If there are none, use an empty array.
-- "red_flags": include clauses that are unusual, one-sided, potentially unenforceable, or that a reasonable person should question before signing. If you find none, return an empty array [].
-- "next_steps": 3-6 concrete, plain actions. Always include consulting a licensed attorney where stakes are meaningful.
-- If the pasted text does not appear to be a legal document, still do your best, and say so in the summary.
-- Return valid JSON only.`;
+  "summary": string,                                              // 2-3 sentences: what the document is and what it means for the reader
+  "key_terms": [{ "term": string, "explanation": string }],       // confusing phrase quoted from the text, plus its plain-English meaning
+  "deadlines": [{ "date_or_timeframe": string, "what_happens": string }], // [] if none
+  "red_flags": [{ "clause": string, "why": string }],             // unusual/one-sided/questionable clauses; [] if none
+  "next_steps": [string]                                          // 3-6 concrete actions to consider
+}`;
 
 interface ExplainResult {
   summary: string;
@@ -96,12 +76,13 @@ export async function POST(request: Request) {
   const MAX_CHARS = 50_000;
   const truncated = document.slice(0, MAX_CHARS);
 
-  const client = new Anthropic({ apiKey });
+  // maxRetries: 0 guarantees exactly one API call per request — no automatic retries.
+  const client = new Anthropic({ apiKey, maxRetries: 0 });
 
   try {
     const message = await client.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 1500,
       system: SYSTEM_PROMPT,
       messages: [
         {

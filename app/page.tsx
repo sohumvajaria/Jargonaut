@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SAMPLE_DOCUMENT } from "./sample";
+
+const LOADING_MESSAGES = [
+  "Reading your document...",
+  "Identifying confusing terms...",
+  "Checking for red flags...",
+  "Calculating deadlines...",
+  "Finalizing your breakdown...",
+];
 
 interface ExplainResult {
   summary: string;
@@ -14,8 +22,19 @@ interface ExplainResult {
 export default function Home() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExplainResult | null>(null);
+
+  // Cycle the loading messages every 5s while waiting, stopping on the last one.
+  useEffect(() => {
+    if (!loading) return;
+    setLoadingStep(0);
+    const id = setInterval(() => {
+      setLoadingStep((step) => Math.min(step + 1, LOADING_MESSAGES.length - 1));
+    }, 5000);
+    return () => clearInterval(id);
+  }, [loading]);
 
   async function handleExplain() {
     if (!text.trim() || loading) return;
@@ -110,6 +129,16 @@ export default function Home() {
               </button>
             )}
           </div>
+
+          {loading && (
+            <p
+              key={loadingStep}
+              className="mt-4 text-sm text-slate-500 animate-fadein"
+              aria-live="polite"
+            >
+              {LOADING_MESSAGES[loadingStep]}
+            </p>
+          )}
         </section>
 
         {error && (
