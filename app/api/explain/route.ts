@@ -34,19 +34,31 @@ interface ExplainResult {
   next_steps: string[];
 }
 
-function extractJson(text: string): ExplainResult {
-  // Be forgiving in case the model wraps the JSON in code fences or stray prose.
+// Strip markdown code fences and stray prose so JSON.parse sees only the object.
+// Tolerates an opening ```json / ``` fence with no closing fence (e.g. when the
+// model's output is truncated) by also narrowing to the outermost { ... }.
+function stripToJson(text: string): string {
   let cleaned = text.trim();
-  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenceMatch) {
-    cleaned = fenceMatch[1].trim();
-  }
+
+  // Remove a leading ```json or ``` fence and a trailing ``` fence, plus the
+  // whitespace around them. Either fence may be absent.
+  cleaned = cleaned
+    .replace(/^```(?:json)?[ \t]*\r?\n?/i, "")
+    .replace(/\r?\n?[ \t]*```$/i, "")
+    .trim();
+
+  // Fall back to the outermost JSON object in case prose surrounds it.
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1) {
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
     cleaned = cleaned.slice(firstBrace, lastBrace + 1);
   }
-  const parsed = JSON.parse(cleaned) as Partial<ExplainResult>;
+
+  return cleaned.trim();
+}
+
+function extractJson(text: string): ExplainResult {
+  const parsed = JSON.parse(stripToJson(text)) as Partial<ExplainResult>;
   // Coerce risk_score to an integer clamped to the documented 1-10 range so the
   // UI can rely on it; default to 1 (low) if the model omits or mangles it.
   const rawScore = Number(parsed.risk_score);
@@ -95,10 +107,13 @@ export async function POST(request: Request) {
   const MAX_CHARS = 50_000;
   const truncated = document.slice(0, MAX_CHARS);
 
-  // maxRetries: 0 guarantees exactly one API call per request — no automatic retries.
+  // maxRetries: 0 keeps the SDK from adding its own retries; we control retries
+  // explicitly below.
   const client = new Anthropic({ apiKey, maxRetries: 0 });
 
-  try {
+  // One model call + parse. Throws if the model returns empty text or unparseable
+  // JSON, so the caller can decide whether to retry.
+  async function callAndParse(): Promise<ExplainResult> {
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: 1500,
@@ -115,26 +130,33 @@ export async function POST(request: Request) {
     const rawText = textBlock && textBlock.type === "text" ? textBlock.text : "";
 
     if (!rawText) {
-      return NextResponse.json(
-        { error: "The model returned an empty response. Please try again." },
-        { status: 502 }
-      );
+      throw new Error("The model returned an empty response.");
     }
 
-    let result: ExplainResult;
-    try {
-      result = extractJson(rawText);
-    } catch {
-      return NextResponse.json(
-        { error: "Could not parse the model's response. Please try again." },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json(result);
-  } catch (err) {
-    const messageText =
-      err instanceof Error ? err.message : "Unexpected error contacting the model.";
-    return NextResponse.json({ error: messageText }, { status: 500 });
+    // extractJson throws (SyntaxError) on malformed JSON.
+    return extractJson(rawText);
   }
+
+  // Try up to twice: if the first response is empty or unparseable, make one more
+  // identical call before giving up. Genuine API errors (auth, rate limit,
+  // network) are surfaced immediately rather than retried here.
+  const MAX_ATTEMPTS = 2;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const result = await callAndParse();
+      return NextResponse.json(result);
+    } catch (err) {
+      if (err instanceof Anthropic.APIError) {
+        const messageText = err.message || "Unexpected error contacting the model.";
+        return NextResponse.json({ error: messageText }, { status: err.status ?? 500 });
+      }
+      // Empty/malformed response — fall through to retry, or to the error below
+      // once attempts are exhausted.
+    }
+  }
+
+  return NextResponse.json(
+    { error: "Something went wrong. Please try again." },
+    { status: 502 }
+  );
 }
