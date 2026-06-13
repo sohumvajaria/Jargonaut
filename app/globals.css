@@ -3,18 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --foreground: #1e293b;
+  --foreground: #e2e8f0;
 }
 
 body {
-  /* Soft, subtle gradient — not pure white — for a calm, trustworthy feel. */
-  background-color: #f1f5f9;
+  /* Near-black navy with a single sharp teal glow bleeding from the top. */
+  background-color: #0a0f1e;
   background-image: radial-gradient(
-      1200px 600px at 50% -10%,
-      rgba(99, 102, 241, 0.08),
-      transparent 60%
-    ),
-    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    1000px 560px at 50% -12%,
+    rgba(0, 212, 170, 0.12),
+    transparent 62%
+  );
   background-attachment: fixed;
   color: var(--foreground);
   font-feature-settings: "cv11", "ss01";

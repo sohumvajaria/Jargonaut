@@ -27,36 +27,35 @@ interface HistoryEntry {
   result: ExplainResult;
 }
 
-// Maps a 1-10 risk score to a label + Tailwind color classes. Kept in one place
-// so the prominent header badge and the compact history rows stay consistent.
+// Maps a 1-10 risk score to a label + color classes for the dark theme. Low risk
+// uses the teal accent (rather than green) so it ties into the rest of the UI;
+// medium/high stay amber/red so the warning semantics read instantly. Kept in
+// one place so the big header badge and the compact history rows agree.
 function riskTone(score: number) {
   if (score <= 3) {
     return {
       label: "Low Risk",
-      number: "text-green-600",
-      pillBg: "bg-green-50",
-      pillRing: "ring-green-200",
-      dot: "bg-green-500",
-      pillText: "text-green-700",
+      fillBg: "bg-accent", // solid badge background
+      fillText: "text-accent-ink", // dark text that sits on the fill
+      accentText: "text-accent", // bright text on dark surfaces
+      dot: "bg-accent",
     };
   }
   if (score <= 6) {
     return {
       label: "Medium Risk",
-      number: "text-amber-600",
-      pillBg: "bg-amber-50",
-      pillRing: "ring-amber-200",
-      dot: "bg-amber-500",
-      pillText: "text-amber-700",
+      fillBg: "bg-amber-400",
+      fillText: "text-amber-950",
+      accentText: "text-amber-400",
+      dot: "bg-amber-400",
     };
   }
   return {
     label: "High Risk",
-    number: "text-red-600",
-    pillBg: "bg-red-50",
-    pillRing: "ring-red-200",
+    fillBg: "bg-red-500",
+    fillText: "text-red-50",
+    accentText: "text-red-400",
     dot: "bg-red-500",
-    pillText: "text-red-700",
   };
 }
 
@@ -157,20 +156,20 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen font-sans">
       <main className="flex-1 w-full max-w-content mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        <header className="mb-8 sm:mb-10 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900">
-            🪐 Jargonaut
+        <header className="mb-9 sm:mb-12 text-center">
+          <h1 className="text-5xl sm:text-6xl font-extrabold tracking-[-0.02em] text-white">
+            Jargonaut<span className="text-accent">.</span>
           </h1>
-          <p className="mt-3 text-base sm:text-lg text-slate-500">
+          <p className="mt-3 text-base sm:text-lg text-slate-400">
             Understand what you&apos;re signing
           </p>
         </header>
 
         {/* Input card */}
-        <section className="rounded-2xl bg-white p-5 sm:p-7 shadow-[0_4px_24px_-8px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/70">
+        <section className="rounded-2xl border border-white/10 bg-surface p-5 sm:p-7">
           <label
             htmlFor="document"
-            className="block text-sm font-medium text-slate-700 mb-2"
+            className="block text-sm font-medium text-slate-300 mb-2"
           >
             Paste your legal document
           </label>
@@ -179,14 +178,14 @@ export default function Home() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Paste the text of a lease, eviction notice, parking ticket, contract, or other legal document here…"
-            className="w-full h-56 sm:h-64 resize-y rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:outline-none"
+            className="w-full h-56 sm:h-64 resize-y rounded-xl border border-white/10 bg-ink p-4 text-base leading-relaxed text-slate-100 placeholder:text-slate-500 transition focus:border-accent focus:ring-4 focus:ring-accent/15 focus:outline-none"
           />
 
           <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:items-center">
             <button
               onClick={handleExplain}
               disabled={loading || extracting || !text.trim()}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:bg-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-accent-ink transition hover:bg-[#00c4a0] active:bg-[#00b393] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -200,7 +199,7 @@ export default function Home() {
             <button
               onClick={loadExample}
               disabled={loading || extracting}
-              className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 hover:ring-slate-400 disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:opacity-50"
             >
               Try an example
             </button>
@@ -214,11 +213,11 @@ export default function Home() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={loading || extracting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-300 transition hover:bg-slate-50 hover:ring-slate-400 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:opacity-50"
             >
               {extracting ? (
                 <>
-                  <Spinner dark />
+                  <Spinner />
                   Reading PDF…
                 </>
               ) : (
@@ -236,7 +235,7 @@ export default function Home() {
                   setError(null);
                 }}
                 disabled={loading}
-                className="text-sm font-medium text-slate-400 transition hover:text-slate-600 sm:ml-auto disabled:opacity-50"
+                className="text-sm font-medium text-slate-500 transition hover:text-slate-300 sm:ml-auto disabled:opacity-50"
               >
                 Clear
               </button>
@@ -244,11 +243,11 @@ export default function Home() {
           </div>
 
           {loading && (
-            <div className="mt-6 flex items-center justify-center gap-3 border-t border-slate-100 pt-6">
-              <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-indigo-500" />
+            <div className="mt-6 flex items-center justify-center gap-3 border-t border-white/10 pt-6">
+              <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-accent" />
               <p
                 key={loadingStep}
-                className="animate-fadein text-sm font-medium text-slate-500"
+                className="animate-fadein text-sm font-medium text-slate-400"
                 aria-live="polite"
               >
                 {LOADING_MESSAGES[loadingStep]}
@@ -258,7 +257,7 @@ export default function Home() {
         </section>
 
         {error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
+          <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
             {error}
           </div>
         )}
@@ -276,7 +275,7 @@ export default function Home() {
       </main>
 
       <footer className="px-4 pb-10 pt-6 text-center">
-        <p className="mx-auto max-w-md text-xs leading-relaxed text-slate-400">
+        <p className="mx-auto max-w-md text-xs leading-relaxed text-slate-600">
           Not legal advice. For informational purposes only. Consult a licensed
           attorney for legal decisions.
         </p>
@@ -289,44 +288,52 @@ function Results({ result }: { result: ExplainResult }) {
   const tone = riskTone(result.risk_score);
   return (
     <div className="mt-8 space-y-5 sm:space-y-6 animate-fadein">
-      {/* Document type badge + risk score — sits above the Summary card. */}
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-white shadow-sm">
+      {/* Document type badge + prominent risk score — sits above the Summary. */}
+      <div className="flex flex-wrap items-stretch gap-3">
+        <span className="inline-flex items-center gap-2 self-center rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-slate-200">
           <span aria-hidden>📑</span>
           {result.document_type}
         </span>
         <div
-          className={`inline-flex items-center gap-3 rounded-2xl px-4 py-2 ring-1 ${tone.pillBg} ${tone.pillRing}`}
+          className={`inline-flex items-center gap-4 rounded-2xl px-6 py-4 ${tone.fillBg}`}
         >
-          <span className={`text-3xl font-bold leading-none ${tone.number}`}>
-            {result.risk_score}
-            <span className="text-base font-medium opacity-60">/10</span>
-          </span>
+          <div className="flex items-baseline gap-1">
+            <span
+              className={`text-5xl sm:text-6xl font-extrabold leading-none ${tone.fillText}`}
+            >
+              {result.risk_score}
+            </span>
+            <span className={`text-xl font-bold ${tone.fillText} opacity-60`}>
+              /10
+            </span>
+          </div>
           <div className="leading-tight">
-            <p className={`text-sm font-bold ${tone.pillText}`}>{tone.label}</p>
-            <p className="text-xs text-slate-500">Risk score</p>
+            <p className={`text-base font-bold ${tone.fillText}`}>{tone.label}</p>
+            <p className={`text-xs font-medium opacity-70 ${tone.fillText}`}>
+              Risk score
+            </p>
           </div>
         </div>
       </div>
 
       {/* Summary */}
-      <Card title="Summary" icon="📄" accent="blue">
-        <p className="text-[16px] leading-relaxed text-slate-700">
+      <Card title="Summary" icon="📄">
+        <p className="text-[15px] leading-relaxed text-slate-300">
           {result.summary}
         </p>
       </Card>
 
       {/* Key Terms */}
       {result.key_terms.length > 0 && (
-        <Card title="Key Terms Explained" icon="🔑" accent="amber">
+        <Card title="Key Terms Explained" icon="🔑">
           <div className="space-y-3">
             {result.key_terms.map((item, i) => (
               <div
                 key={i}
-                className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100"
+                className="rounded-lg border border-white/10 bg-white/[0.02] p-4"
               >
-                <p className="font-semibold text-slate-900">{item.term}</p>
-                <p className="mt-1 text-[15px] leading-relaxed text-slate-600">
+                <p className="font-semibold text-white">{item.term}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-slate-400">
                   {item.explanation}
                 </p>
               </div>
@@ -337,17 +344,14 @@ function Results({ result }: { result: ExplainResult }) {
 
       {/* Deadlines */}
       {result.deadlines.length > 0 && (
-        <Card title="Important Deadlines" icon="⏰" accent="orange">
-          <div className="space-y-3">
+        <Card title="Important Deadlines" icon="⏰" chip="amber">
+          <div className="space-y-4">
             {result.deadlines.map((item, i) => (
-              <div
-                key={i}
-                className="rounded-r-lg border-l-4 border-orange-400 bg-orange-50/70 py-3 pl-4 pr-4"
-              >
-                <p className="font-semibold text-orange-900">
+              <div key={i} className="border-l-[3px] border-amber-400 pl-4">
+                <p className="font-semibold text-amber-300">
                   {item.date_or_timeframe}
                 </p>
-                <p className="mt-1 text-[15px] leading-relaxed text-orange-800/90">
+                <p className="mt-1 text-[14px] leading-relaxed text-slate-400">
                   {item.what_happens}
                 </p>
               </div>
@@ -356,25 +360,22 @@ function Results({ result }: { result: ExplainResult }) {
         </Card>
       )}
 
-      {/* Red Flags — highest-stakes section, more urgent treatment */}
-      <Card title="Red Flags" icon="🚩" accent="red">
+      {/* Red Flags — left border accent, no background tint: clean and urgent. */}
+      <Card title="Red Flags" icon="🚩" chip="red">
         {result.red_flags.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {result.red_flags.map((item, i) => (
-              <div
-                key={i}
-                className="rounded-r-lg border-l-4 border-red-500 bg-red-50 py-3 pl-4 pr-4 ring-1 ring-red-100"
-              >
-                <p className="font-semibold text-red-900">{item.clause}</p>
-                <p className="mt-1 text-[15px] leading-relaxed text-red-800/90">
+              <div key={i} className="border-l-[3px] border-red-500 pl-4">
+                <p className="font-semibold text-red-400">{item.clause}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-slate-400">
                   {item.why}
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 font-medium text-green-800">
-            <span aria-hidden>✅</span>
+          <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-4 py-3 font-medium text-accent">
+            <span aria-hidden>✓</span>
             No major red flags detected.
           </div>
         )}
@@ -382,17 +383,17 @@ function Results({ result }: { result: ExplainResult }) {
 
       {/* Next Steps */}
       {result.next_steps.length > 0 && (
-        <Card title="Next Steps" icon="✅" accent="green">
+        <Card title="Next Steps" icon="✅">
           <ul className="space-y-2.5">
             {result.next_steps.map((step, i) => (
               <li key={i} className="flex gap-3">
                 <span
                   aria-hidden
-                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-semibold text-green-700"
+                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 font-mono text-xs font-bold text-accent"
                 >
                   {i + 1}
                 </span>
-                <span className="text-[15px] leading-relaxed text-slate-700">
+                <span className="text-[14px] leading-relaxed text-slate-300">
                   {step}
                 </span>
               </li>
@@ -404,31 +405,31 @@ function Results({ result }: { result: ExplainResult }) {
   );
 }
 
-const ACCENTS = {
-  blue: "bg-blue-50 text-blue-600",
-  amber: "bg-amber-50 text-amber-600",
-  orange: "bg-orange-50 text-orange-600",
-  red: "bg-red-50 text-red-600",
-  green: "bg-green-50 text-green-600",
+// Header-icon chip color per section. Defaults to the teal accent; deadlines and
+// red flags keep their semantic warning colors.
+const CHIPS = {
+  accent: "border-accent/20 bg-accent/10 text-accent",
+  amber: "border-amber-400/20 bg-amber-400/10 text-amber-400",
+  red: "border-red-500/20 bg-red-500/10 text-red-400",
 } as const;
 
 function Card({
   title,
   icon,
-  accent,
+  chip = "accent",
   children,
 }: {
   title: string;
   icon: string;
-  accent: keyof typeof ACCENTS;
+  chip?: keyof typeof CHIPS;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-white p-5 sm:p-7 shadow-[0_4px_24px_-8px_rgba(15,23,42,0.10)] ring-1 ring-slate-200/70">
-      <h2 className="mb-4 flex items-center gap-3 text-lg font-semibold text-slate-900">
+    <section className="rounded-2xl border border-white/10 bg-surface p-5 sm:p-7">
+      <h2 className="mb-4 flex items-center gap-3 text-sm font-bold uppercase tracking-wider text-slate-200">
         <span
           aria-hidden
-          className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg ${ACCENTS[accent]}`}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg border text-base ${CHIPS[chip]}`}
         >
           {icon}
         </span>
@@ -451,26 +452,26 @@ function RecentAnalyses({
   onSelect: (entry: HistoryEntry) => void;
 }) {
   return (
-    <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_-8px_rgba(15,23,42,0.10)] ring-1 ring-slate-200/70">
+    <section className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-surface">
       <button
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-slate-50/70 sm:px-7"
+        className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-white/5 sm:px-7"
       >
-        <span className="flex items-center gap-3 text-lg font-semibold text-slate-900">
+        <span className="flex items-center gap-3 text-sm font-bold uppercase tracking-wider text-slate-200">
           <span
             aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-lg text-slate-600"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 text-base text-accent"
           >
             🕓
           </span>
           Recent Analyses
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-xs font-medium text-slate-400">
             {history.length}
           </span>
         </span>
         <svg
-          className={`h-5 w-5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-5 w-5 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
           viewBox="0 0 20 20"
           fill="currentColor"
           aria-hidden
@@ -484,28 +485,33 @@ function RecentAnalyses({
       </button>
 
       {open && (
-        <ul className="divide-y divide-slate-100 border-t border-slate-100">
+        <ul className="divide-y divide-white/5 border-t border-white/10">
           {history.map((entry) => {
             const tone = riskTone(entry.result.risk_score);
             return (
               <li key={entry.id}>
                 <button
                   onClick={() => onSelect(entry)}
-                  className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left transition hover:bg-slate-50 sm:px-7"
+                  className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left transition hover:bg-white/5 sm:px-7"
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span aria-hidden className="text-slate-400">
+                    <span aria-hidden className="text-slate-600">
                       📑
                     </span>
-                    <span className="truncate font-medium text-slate-800">
+                    <span className="truncate text-sm font-medium text-slate-200">
                       {entry.result.document_type}
                     </span>
                   </span>
-                  <span
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${tone.pillBg} ${tone.pillRing} ${tone.pillText}`}
-                  >
+                  <span className="flex shrink-0 items-center gap-2.5">
                     <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-                    {entry.result.risk_score}/10 · {tone.label}
+                    <span
+                      className={`font-mono text-sm font-semibold tabular-nums ${tone.accentText}`}
+                    >
+                      {entry.result.risk_score}/10
+                    </span>
+                    <span className="hidden text-xs text-slate-500 sm:inline">
+                      {tone.label}
+                    </span>
                   </span>
                 </button>
               </li>
@@ -517,10 +523,12 @@ function RecentAnalyses({
   );
 }
 
-function Spinner({ dark = false }: { dark?: boolean }) {
+function Spinner() {
+  // Inherits the parent's text color so it works on both the teal primary
+  // button and the muted secondary buttons.
   return (
     <svg
-      className={`h-4 w-4 animate-spin ${dark ? "text-slate-500" : "text-white"}`}
+      className="h-4 w-4 animate-spin"
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden
