@@ -7,8 +7,17 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      maxWidth: {
+        content: "860px",
+      },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        sans: [
+          "var(--font-inter)",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "sans-serif",
+        ],
       },
     },
   },
