@@ -14,9 +14,13 @@ Respond with ONLY a valid JSON object (no markdown, no code fences) matching thi
   "summary": string,                                              // 2-3 sentences: what the document is and what it means for the reader
   "key_terms": [{ "term": string, "explanation": string }],       // confusing phrase quoted from the text, plus its plain-English meaning
   "deadlines": [{ "date_or_timeframe": string, "what_happens": string }], // [] if none
-  "red_flags": [{ "clause": string, "why": string }],             // unusual/one-sided/questionable clauses; [] if none
+  "red_flags": [{ "clause": string, "why": string }],             // see red flag rules below; [] if none
   "next_steps": [string]                                          // 3-6 concrete actions to consider
-}`;
+}
+
+Red flag rules — be strict. Only flag clauses that are genuinely unusual, one-sided, potentially illegal, or that significantly disadvantage the average person. Do NOT flag standard or reasonable terms. If the document contains no genuinely concerning clauses, return an empty red_flags array [].
+Do NOT flag: standard fees disclosed upfront, normal limitation-of-liability language, typical renewal terms, reasonable replacement fees.
+DO flag: hidden or undisclosed fees, waiver of legal rights, unusually harsh penalties, clauses that may violate consumer protection or habitability law, contradictory or confusing terms that could mislead someone.`;
 
 interface ExplainResult {
   summary: string;
