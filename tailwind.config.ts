@@ -8,18 +8,29 @@ const config: Config = {
   theme: {
     extend: {
       maxWidth: {
-        content: "860px",
+        hero: "640px",
+        results: "1024px",
       },
       colors: {
-        // Distinctive dark palette + sharp teal accent.
-        ink: "#0a0f1e", // page background — near-black navy
-        surface: "#111827", // card surface — a step lighter than the page
-        accent: {
-          DEFAULT: "#00d4aa",
-          ink: "#04140f", // dark text that sits on a solid accent fill
+        paper: "#f7f5ef",
+        surface: "#ffffff",
+        ink: "#1b1813",
+        "ink-muted": "#6c6357",
+        edge: "#ddd5c6",
+        stamp: {
+          DEFAULT: "#c10f2b",
+          deep: "#9a0c22",
         },
+        cleared: "#1a7d3c",
+        medium: "#c47f0a",
       },
       fontFamily: {
+        display: [
+          "var(--font-display)",
+          "var(--font-serif)",
+          "Georgia",
+          "serif",
+        ],
         sans: [
           "var(--font-inter)",
           "system-ui",
@@ -33,6 +44,13 @@ const config: Config = {
           "SFMono-Regular",
           "Menlo",
           "monospace",
+        ],
+        serif: [
+          "var(--font-serif)",
+          "Georgia",
+          "Cambria",
+          "Times New Roman",
+          "serif",
         ],
       },
     },

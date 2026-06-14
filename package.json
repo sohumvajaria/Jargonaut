@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "capture-sample": "tsx scripts/capture-sample-result.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.65.0",
+    "lucide-react": "^1.18.0",
     "next": "^16.2.9",
+    "openai": "^4.104.0",
     "pdfjs-dist": "^6.0.227",
     "react": "19.1.1",
     "react-dom": "19.1.1"
@@ -23,6 +25,7 @@
     "eslint-config-next": "^16.2.9",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.4",
     "typescript": "^5"
   },
   "overrides": {

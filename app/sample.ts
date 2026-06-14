@@ -18,3 +18,30 @@ export const SAMPLE_DOCUMENT = `RESIDENTIAL LEASE AGREEMENT — SELECTED CLAUSES
 23. ATTORNEY'S FEES. In any dispute arising under this Lease, Tenant shall be responsible for Landlord's attorney's fees and costs regardless of which party prevails.
 
 26. WAIVER OF JURY TRIAL. Tenant waives the right to a trial by jury in any action arising out of this Lease.`;
+
+export const PARKING_TICKET_DOCUMENT = `CITY OF SAN FRANCISCO — PARKING CITATION
+
+Citation No: SF-8847291
+Date: March 14, 2026
+Vehicle: ABC1234
+
+Violation: Street cleaning — Zone 4
+Fine Amount: $98.00
+
+PAYMENT: Payment must be received within 21 days or late penalties apply. After 21 days, a delinquency fee of $65.00 will be added. After 45 days, additional penalties of $100.00 apply and the vehicle may be booted.
+
+CONTEST: To contest this citation, you must appear in person at Parking Violations Bureau within 15 calendar days of the citation date. Online contest is not available for this violation type.
+
+By paying this citation, you waive all rights to a hearing and admit guilt.`;
+
+export const GYM_CONTRACT_DOCUMENT = `FITFORGE ATHLETIC CLUB — MEMBERSHIP AGREEMENT
+
+1. MEMBERSHIP FEE. Member agrees to pay $89.99 per month for a minimum term of twelve (12) months.
+
+2. AUTO-RENEWAL. Membership automatically renews for successive twelve (12) month periods unless Member provides written cancellation notice at least sixty (60) days prior to the renewal date. Member will be charged a $150 early termination fee if cancellation occurs before the end of any commitment period.
+
+3. ARBITRATION. Member waives the right to a jury trial and agrees that all disputes shall be resolved by binding arbitration in a forum selected by Club.
+
+4. LIABILITY WAIVER. Member assumes all risk of injury and releases Club from any liability, including Club's own negligence, to the fullest extent permitted by law.
+
+5. PRICE CHANGES. Club may increase monthly fees upon fourteen (14) days' notice.`;

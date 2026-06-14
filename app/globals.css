@@ -3,23 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --foreground: #e2e8f0;
+  --foreground: #1b1813;
 }
 
 body {
-  /* Near-black navy with a single sharp teal glow bleeding from the top. */
-  background-color: #0a0f1e;
-  background-image: radial-gradient(
-    1000px 560px at 50% -12%,
-    rgba(0, 212, 170, 0.12),
-    transparent 62%
-  );
-  background-attachment: fixed;
+  background-color: #f7f5ef;
   color: var(--foreground);
   font-feature-settings: "cv11", "ss01";
 }
 
-/* Fade used by cycling loading messages and result reveal. */
 @keyframes fadein {
   from {
     opacity: 0;
@@ -32,7 +24,33 @@ body {
 }
 
 .animate-fadein {
-  animation: fadein 0.5s ease-out;
+  animation: fadein 0.5s ease-out both;
+}
+
+mark[data-finding-id].mark-emphasis {
+  outline: 2px solid rgba(193, 15, 43, 0.45);
+  outline-offset: 1px;
+  background-color: rgba(193, 15, 43, 0.2) !important;
+}
+
+mark[data-finding-id].mark-emphasis-medium {
+  outline: 2px solid rgba(196, 127, 10, 0.5);
+  outline-offset: 1px;
+  background-color: rgba(196, 127, 10, 0.2) !important;
+}
+
+.finding-emphasis {
+  border-color: rgba(193, 15, 43, 0.45) !important;
+  background-color: rgba(193, 15, 43, 0.05);
+  box-shadow: 0 4px 12px rgba(27, 24, 19, 0.06);
+  transform: translateY(-2px);
+}
+
+.finding-emphasis-medium {
+  border-color: rgba(196, 127, 10, 0.5) !important;
+  background-color: rgba(196, 127, 10, 0.05);
+  box-shadow: 0 4px 12px rgba(27, 24, 19, 0.06);
+  transform: translateY(-2px);
 }
 
 @keyframes pulse-dot {
@@ -49,4 +67,36 @@ body {
 
 .pulse-dot {
   animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes mark-flash {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(193, 15, 43, 0);
+  }
+  25% {
+    box-shadow: inset 0 0 0 999px rgba(193, 15, 43, 0.22);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(193, 15, 43, 0);
+  }
+}
+
+mark.mark-flash {
+  animation: mark-flash 1s ease-out;
+}
+
+@keyframes mark-flash-medium {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(196, 127, 10, 0);
+  }
+  25% {
+    box-shadow: inset 0 0 0 999px rgba(196, 127, 10, 0.22);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(196, 127, 10, 0);
+  }
+}
+
+mark.mark-flash-medium {
+  animation: mark-flash-medium 1s ease-out;
 }

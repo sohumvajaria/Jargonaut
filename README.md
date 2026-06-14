@@ -1,61 +1,51 @@
-# 🪐 Jargonaut
+# Jargonaut
 
-**Understand what you're signing** — paste any legal document and get a plain-English breakdown in seconds.
+**Catch the illegal clauses before you sign.** Paste a lease, contract, or notice and get a plain-English breakdown with statute-backed findings highlighted in the document.
 
-## The problem
+## Why this isn't a generic LLM wrapper
 
-Leases, eviction notices, parking tickets, loan agreements, and terms of service are written in dense legalese that most people can't realistically parse. The important parts — hidden fees, tight deadlines, waived rights — are buried in clauses designed to be skimmed past. People sign anyway, because hiring a lawyer to review every document is impractical.
+The model summarizes the document, but **verified findings come from a deterministic rules engine** (`app/rules.ts`) that runs server-side after every analysis. Five California rules are hardcoded today — deposit return window, deposit cap, entry without notice, excessive late fee, junk/elastic fees — each stamped with a **real citation** (e.g. Cal. Civ. Code §1950.5, §1954).
 
-Jargonaut closes that gap. Paste the text (or upload a PDF), hit **Explain This**, and get back:
+Every model red flag also goes through **server-side verbatim source-quote verification**: the API checks that `source_quote` is an exact substring of the pasted text before marking it verified.
 
-- **Document type** — a quick label for what you're looking at (e.g. *Lease Agreement*, *Parking Ticket*, *Employment Contract*)
-- **Risk score** — an at-a-glance 1–10 rating (Low / Medium / High), driven by the number and severity of red flags
-- **Summary** — what the document is and what it means for you
-- **Key Terms Explained** — the confusing phrases, decoded
-- **Important Deadlines** — dates and time-sensitive obligations
-- **Red Flags** — genuinely unusual, one-sided, or potentially unlawful clauses (or an all-clear when there are none)
-- **Next Steps** — concrete actions to consider
+The results view is a **redline UI**: the left column is the document on paper, with `<mark>` highlights on the exact offending clauses; the right rail lists verified findings as evidence tags. Click a finding to scroll to and flash its highlight.
 
-### Also included
+## What else it does
 
-- **PDF upload** — drop in a PDF and the text is extracted right in your browser (via `pdfjs-dist`), then runs through the same analysis. Pasting still works exactly as before.
-- **Session history** — every analysis is kept in a collapsible **Recent Analyses** list for the session (in memory only, cleared on refresh); click any entry to reload it.
-- **Dark UI** — a distinctive dark-navy theme with a sharp teal accent.
+- **Classified / redline theme** — paper background, stamp-red accents, dossier-style section headers, risk seal
+- **Draft demand letter** — one click generates a tenant→landlord letter citing the flagged statutes (`/api/letter`)
+- **PDF upload** — text extracted in the browser via `pdfjs-dist`; the file never leaves your machine until you submit
+- **Session history** — collapsible **Recent analyses** list (in-memory, cleared on refresh); click to reload
 
-> ⚖️ **Not legal advice.** For informational purposes only. Consult a licensed attorney for legal decisions.
+> **Not legal advice.** For informational purposes only. Consult a licensed attorney for legal decisions.
 
 ## Tech stack
 
-- **Next.js** (App Router) + React + TypeScript
-- **Claude Haiku API** (`claude-haiku-4-5-20251001`) via `@anthropic-ai/sdk` — fast, low-cost structured JSON extraction
-- **Tailwind CSS** for styling (dark theme, Inter + JetBrains Mono)
-- **`pdfjs-dist`** for client-side PDF text extraction — files never leave the browser
-- A single API route (`app/api/explain/route.ts`) handles the Claude call, strips any markdown code fences from the response, and retries once if the model returns unparseable JSON; no database, no auth
+- **Next.js** (App Router) + React + TypeScript + Tailwind CSS
+- **Groq** — Llama 3.3 70B (`llama-3.3-70b-versatile`) via the OpenAI-compatible endpoint (`openai` SDK). Provider is swappable with `LLM_BASE_URL` / `LLM_MODEL` (Gemini alternate documented in `.env.example`)
+- **Deterministic rules engine** — `applyRules()` in `app/rules.ts`; not LLM-generated
+- **`pdfjs-dist`** — client-side PDF extraction
+- Two API routes: `/api/explain` (structured JSON + rules pass) and `/api/letter` (plain-text demand letter). No database, no auth
 
-## Run it locally
+## Run locally
 
 ```bash
 npm install
-cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
+cp .env.example .env.local   # add LLM_API_KEY (free at console.groq.com)
 npm run dev
 ```
 
-Open http://localhost:3000. Click **Try an example** to load a sample lease clause (with a hidden fee and an unusual deadline) and see Jargonaut in action without needing your own document — or **Upload PDF** to analyze your own file.
-
-You'll need an Anthropic API key — get one at [console.anthropic.com](https://console.anthropic.com/).
+Open http://localhost:3000. Click **Try an example** to load a sample California lease, or **Upload PDF** / paste your own text and hit **Review document**.
 
 ## Deploy to Vercel
 
-1. Push this repo to GitHub.
-2. Import it at [vercel.com/new](https://vercel.com/new).
-3. Add an environment variable **`ANTHROPIC_API_KEY`** with your key.
-4. Deploy — no other configuration needed.
+1. Push to GitHub and import at [vercel.com/new](https://vercel.com/new).
+2. Set **`LLM_API_KEY`**, and optionally **`LLM_BASE_URL`** / **`LLM_MODEL`**.
+3. Deploy.
 
 ## AI usage disclosure
 
-This project uses AI in two distinct ways:
+- **In the product:** Document summary, key terms, deadlines, model red flags, and next steps come from **Llama 3.3 70B on Groq** (OpenAI-compatible API). Verified statute findings and quote matching are **deterministic code**, not model output.
+- **In development:** Cursor and Claude were used as coding assistants.
 
-- **In the product:** The document analysis is powered by **Claude (Haiku model — `claude-haiku-4-5-20251001`)** from Anthropic. When you click "Explain This," the pasted or extracted text is sent to the Claude API, which returns the structured breakdown (document type, risk score, summary, key terms, deadlines, red flags, and next steps). No analysis is hard-coded — the model does the interpretation, including the risk rating.
-- **In development:** **Claude Code** and **Cursor** were used as AI development tools throughout the build — scaffolding the app, writing and refactoring code, designing the UI, and tuning the prompt.
-
-AI output can be wrong or incomplete. Jargonaut is an informational aid, not a substitute for a licensed attorney.
+Model output can be wrong or incomplete. Jargonaut is an informational aid, not a substitute for a licensed attorney.
